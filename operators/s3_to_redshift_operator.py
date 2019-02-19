@@ -21,8 +21,8 @@ class S3ToRedshiftOperator(BaseOperator):
     :type redshift_schema:          string
     :param table:                   The destination redshift table.
     :type table:                    string
-    :param s3_conn_id:              The source s3 connection id.
-    :type s3_conn_id:               string
+    :param aws_conn_id:             The aws connection id.
+    :type aws_conn_id:              string
     :param s3_bucket:               The source s3 bucket.
     :type s3_bucket:                string
     :param s3_key:                  The source s3 key.
@@ -90,7 +90,7 @@ class S3ToRedshiftOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 s3_conn_id,
+                 aws_conn_id,
                  s3_bucket,
                  s3_key,
                  redshift_conn_id,
@@ -109,7 +109,7 @@ class S3ToRedshiftOperator(BaseOperator):
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
-        self.s3_conn_id = s3_conn_id
+        self.aws_conn_id = aws_conn_id
         self.s3_bucket = s3_bucket
         self.s3_key = s3_key
         self.redshift_conn_id = redshift_conn_id
@@ -162,9 +162,9 @@ class S3ToRedshiftOperator(BaseOperator):
 
     def read_and_format(self):
         if self.schema_location.lower() == 's3':
-                hook = S3Hook(self.s3_conn_id)
+                hook = S3Hook(self.aws_conn_id)
                 # NOTE: In retrieving the schema, it is assumed
-                # that boto3 is being used. If using boto, 
+                # that boto3 is being used. If using boto,
                 # `.get()['Body'].read().decode('utf-8'))`
                 # should be changed to
                 # `.get_contents_as_string(encoding='utf-8'))`
@@ -219,7 +219,7 @@ class S3ToRedshiftOperator(BaseOperator):
 
         def getS3Conn():
             creds = ""
-            s3_conn = get_conn(self.s3_conn_id)
+            s3_conn = get_conn(self.aws_conn_id)
             aws_key = s3_conn.extra_dejson.get('aws_access_key_id', None)
             aws_secret = s3_conn.extra_dejson.get('aws_secret_access_key', None)
             # support for cross account resource access
