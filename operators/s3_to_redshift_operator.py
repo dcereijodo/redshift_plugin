@@ -209,25 +209,17 @@ class S3ToRedshiftOperator(BaseOperator):
             logging.info('There were no new columns.')
 
     def copy_data(self, pg_hook, schema=None):
-        @provide_session
-        def get_conn(conn_id, session=None):
-            conn = (
-                session.query(Connection)
-                .filter(Connection.conn_id == conn_id)
-                .first())
-            return conn
-
         def getS3Conn():
-            creds = ""
-            s3_conn = get_conn(self.aws_conn_id)
-            aws_key = s3_conn.extra_dejson.get('aws_access_key_id', None)
-            aws_secret = s3_conn.extra_dejson.get('aws_secret_access_key', None)
+            hook = S3Hook(self.aws_conn_id)
+            credentials = hook.get_credentials()
+            aws_key = credentials.access_key
+            aws_secret = credentials.secret_key
             # support for cross account resource access
-            aws_role_arn = s3_conn.extra_dejson.get('role_arn', None)
+            aws_role_arn = hook.get_connection(self.aws_conn_id).extra_dejson.get('role_arn', None)
 
             if aws_key and aws_secret:
                 creds = ("aws_access_key_id={0};aws_secret_access_key={1}"
-                    .format(aws_key, aws_secret))
+                    .format(aws_key,aws_secret))
             elif aws_role_arn:
                 creds = ("aws_iam_role={0}"
                     .format(aws_role_arn))
