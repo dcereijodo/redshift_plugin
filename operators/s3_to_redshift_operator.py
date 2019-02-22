@@ -217,12 +217,12 @@ class S3ToRedshiftOperator(BaseOperator):
             # support for cross account resource access
             aws_role_arn = hook.get_connection(self.aws_conn_id).extra_dejson.get('role_arn', None)
 
-            if aws_key and aws_secret:
-                creds = ("aws_access_key_id={0};aws_secret_access_key={1}"
-                    .format(aws_key,aws_secret))
-            elif aws_role_arn:
+            if aws_role_arn:
                 creds = ("aws_iam_role={0}"
                     .format(aws_role_arn))
+            elif aws_key and aws_secret:
+                creds = ("aws_access_key_id={0};aws_secret_access_key={1}"
+                    .format(aws_key,aws_secret))
 
             return creds
 
