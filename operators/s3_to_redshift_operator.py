@@ -277,6 +277,12 @@ class S3ToRedshiftOperator(BaseOperator):
             FILLTARGET
             '''.format(self.redshift_schema, self.table, self.temp_suffix)
 
+        insert_sql = \
+            '''
+            INSERT INTO "{0}"."{1}"
+            SELECT * FROM "{0}"."{1}{2}"
+            '''.format(self.redshift_schema, self.table, self.temp_suffix)
+
         drop_sql = \
             '''
             DROP TABLE IF EXISTS "{0}"."{1}"
@@ -332,9 +338,13 @@ class S3ToRedshiftOperator(BaseOperator):
                                                      self.temp_suffix,
                                                      base_sql)
             pg_hook.run(load_temp_sql)
+            # perform table upsert in a transaction
+            pg_hook.run("BEGIN")
             pg_hook.run(delete_sql)
             pg_hook.run(delete_confirm_sql)
-            pg_hook.run(append_sql, autocommit=True)
+            pg_hook.run(insert_sql)
+            pg_hook.run("END")
+            # end transaction
             pg_hook.run(drop_temp_sql)
 
     def create_if_not_exists(self, schema, pg_hook, temp=False):
