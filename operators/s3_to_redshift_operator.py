@@ -168,10 +168,13 @@ class S3ToRedshiftOperator(BaseOperator):
                 # `.get()['Body'].read().decode('utf-8'))`
                 # should be changed to
                 # `.get_contents_as_string(encoding='utf-8'))`
-                schema = (hook.get_key(self.origin_schema,
+                logging.info('Retrieve schema from S3 {}'.format(self.origin_schema))
+                logging.info('Bucket name {}'.format(self.s3_bucket))
+                schema = (hook.get_key(self.origin_schema.rstrip(),
                                        bucket_name=
                                        '{0}'.format(self.s3_bucket))
                           .get()['Body'].read().decode('utf-8'))
+                logging.info('Retrieved schema')
                 schema = json.loads(schema.replace("'", '"'))
         else:
             schema = self.origin_schema
@@ -179,6 +182,7 @@ class S3ToRedshiftOperator(BaseOperator):
         return schema
 
     def reconcile_schemas(self, schema, pg_hook):
+        logging.info('Reconciling schemas for {}.{}'.format(self.redshift_schema, self.table))
         pg_query = \
             """
             SELECT column_name, udt_name
@@ -187,6 +191,8 @@ class S3ToRedshiftOperator(BaseOperator):
             """.format(self.redshift_schema, self.table)
 
         pg_schema = dict(pg_hook.get_records(pg_query))
+        logging.info('Returned rows are {}'.format(pg_schema))
+        logging.info('Schema rows are {}'.format(schema))
         incoming_keys = [column['name'] for column in schema]
         diff = list(set(incoming_keys) - set(pg_schema.keys()))
         print(diff)
